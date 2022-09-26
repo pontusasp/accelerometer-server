@@ -20,7 +20,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private lateinit var square: TextView
+    private lateinit var server: ServerSocket
     private var connected = false
+    private var crashed = false
     private var name = "Unknown"
     private var port = 1337
     private var host = "6.9.0.0"
@@ -71,43 +73,48 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         Log.d("ACC.SERV", "Starting creating server thread...")
         thread {
             Log.d("ACC.SERV", "Starting server...")
-            val server = ServerSocket(0)
+            server = ServerSocket(port)
             port = server.localPort
             host = getLocalIpAddress()
             Log.d("ACC.SERV", "Waiting for connection...")
             while (isRunning) {
-                val socket = server.accept()
-                Log.d("ACC.SERV", "Connected!")
+                try {
+                    val socket = server.accept()
+                    Log.d("ACC.SERV", "Connected!")
 
-                val inputStreamReader = InputStreamReader(socket.getInputStream())
-                val inStream = BufferedReader(inputStreamReader)
-                val outStream = PrintWriter(socket.getOutputStream())
+                    val inputStreamReader = InputStreamReader(socket.getInputStream())
+                    val inStream = BufferedReader(inputStreamReader)
+                    val outStream = PrintWriter(socket.getOutputStream())
 
-                name = inStream.readLine()
-                connected = true
-                Log.i("ACC.SERV", "Name: $name")
+                    name = inStream.readLine()
+                    connected = true
+                    Log.i("ACC.SERV", "Name: $name")
 
-                //val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-                //val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
+                    //val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+                    //val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
 
-                while (!inStream.readLine().equals("quit")) {
-                    outStream.println("h:${horizontalRotation}v:${verticalRotation}")
+                    while (!inStream.readLine().equals("quit")) {
+                        outStream.println("${horizontalRotation}:${verticalRotation}")
+                        outStream.flush()
+                    }
+
+                    outStream.println("quit")
                     outStream.flush()
+
+                    inputStreamReader.close()
+                    inStream.close()
+                    outStream.close()
+                    socket.close()
+                    connected = false
+                    name = "Unknown"
+                    port = 1337
+                    host = "6.9.0.0"
+                } catch (e: Exception) {
+                    crashed = true
+                    square.text = "Crash! Stacktrace: ${e.printStackTrace()}"
+                    server.close()
                 }
-
-                outStream.println("quit")
-                outStream.flush()
-
-                inputStreamReader.close()
-                inStream.close()
-                outStream.close()
-                socket.close()
-                connected = false
-                name = "Unknown"
-                port = 1337
-                host = "6.9.0.0"
             }
-            server.close()
         }
     }
 
@@ -121,11 +128,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 rotationY = verticalRotation * 3f
             }
 
-            square.text = (
-                    (if (connected) "Connected to $name\n" else "Disconnected ($host:$port)\n")+
-                    "X ${horizontalRotation.toInt()}\n"+
-                    "Z ${verticalRotation.toInt()}"
-                    )
+            if (!crashed)
+                square.text = (
+                        (if (connected) "Connected to $name\n" else "Disconnected ($host:$port)\n")+
+                        "X ${horizontalRotation.toInt()}\n"+
+                        "Z ${verticalRotation.toInt()}"
+                        )
         }
     }
 
@@ -135,6 +143,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onDestroy() {
         sensorManager.unregisterListener(this)
+        if (!crashed) server.close()
         super.onDestroy()
     }
 }
