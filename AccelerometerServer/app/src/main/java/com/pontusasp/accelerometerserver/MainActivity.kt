@@ -1,6 +1,5 @@
 package com.pontusasp.accelerometerserver
 
-import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -26,6 +25,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var name = "Unknown"
     private var port = 1337
     private var host = "6.9.0.0"
+    private var fails = 0
+    private val maxFails = 1000
 
     private var horizontalRotation = 0f
     private var verticalRotation = 0f
@@ -77,44 +78,54 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             port = server.localPort
             host = getLocalIpAddress()
             Log.d("ACC.SERV", "Waiting for connection...")
-            while (isRunning) {
+            var retry = true
+            while (retry) {
+                retry = false
                 try {
-                    val socket = server.accept()
-                    Log.d("ACC.SERV", "Connected!")
+                    while (isRunning) {
+                        val socket = server.accept()
+                        Log.d("ACC.SERV", "Connected!")
 
-                    val inputStreamReader = InputStreamReader(socket.getInputStream())
-                    val inStream = BufferedReader(inputStreamReader)
-                    val outStream = PrintWriter(socket.getOutputStream())
+                        val inputStreamReader = InputStreamReader(socket.getInputStream())
+                        val inStream = BufferedReader(inputStreamReader)
+                        val outStream = PrintWriter(socket.getOutputStream())
 
-                    name = inStream.readLine()
-                    connected = true
-                    Log.i("ACC.SERV", "Name: $name")
+                        name = inStream.readLine()
+                        connected = true
+                        Log.i("ACC.SERV", "Name: $name")
 
-                    //val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-                    //val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
+                        //val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+                        //val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
 
-                    while (!inStream.readLine().equals("quit")) {
-                        outStream.println("${horizontalRotation}:${verticalRotation}")
+                        while (!inStream.readLine().equals("quit")) {
+                            outStream.println("${horizontalRotation}:${verticalRotation}")
+                            outStream.flush()
+                        }
+
+                        outStream.println("quit")
                         outStream.flush()
+
+                        inputStreamReader.close()
+                        inStream.close()
+                        outStream.close()
+                        socket.close()
+                        connected = false
+                        name = "Unknown"
+                        port = server.localPort
+                        host = getLocalIpAddress()
                     }
-
-                    outStream.println("quit")
-                    outStream.flush()
-
-                    inputStreamReader.close()
-                    inStream.close()
-                    outStream.close()
-                    socket.close()
-                    connected = false
-                    name = "Unknown"
-                    port = 1337
-                    host = "6.9.0.0"
                 } catch (e: Exception) {
-                    crashed = true
                     square.text = "Crash! Stacktrace: ${e.printStackTrace()}"
-                    server.close()
+                    fails += 1
+                    retry = fails < maxFails
+                    crashed = !retry
                 }
+                connected = false
+                name = "Unknown"
+                port = server.localPort
+                host = getLocalIpAddress()
             }
+            server.close()
         }
     }
 
