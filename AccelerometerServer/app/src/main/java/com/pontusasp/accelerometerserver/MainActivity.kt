@@ -1,19 +1,22 @@
 package com.pontusasp.accelerometerserver
 
+import android.graphics.drawable.GradientDrawable
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.net.*
 import java.util.*
 import kotlin.concurrent.thread
+
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
@@ -36,6 +39,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         setContentView(R.layout.activity_main)
 
         square = findViewById(R.id.square)
+        supportActionBar?.hide()
 
         setUpSensorStuff()
         startServer()
@@ -135,8 +139,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             horizontalRotation = event.values[1]
 
             square.apply {
-                rotationX = horizontalRotation * 3f
-                rotationY = verticalRotation * 3f
+                rotationY = horizontalRotation * -3f
+                rotationX = verticalRotation * 3f
             }
 
             if (!crashed)

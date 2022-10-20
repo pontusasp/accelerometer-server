@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Accelerometer Server</string>
+    <string name="accelerometer_server">Accelerometer Server</string>
 </resources>

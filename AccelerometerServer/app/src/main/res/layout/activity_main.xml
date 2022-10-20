@@ -4,15 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:background="@android:color/black"
+    tools:context=".MainActivity"
+    android:keepScreenOn="true">
 
     <TextView
         android:id="@+id/square"
         android:layout_width="200dp"
         android:layout_height="200dp"
-        android:text="Hello World!"
+        android:text="@string/accelerometer_server"
         android:textAlignment="center"
-        android:background="#060"
+        android:background="@drawable/black_box_white_border"
         android:textColor="@color/white"
         android:textSize="20sp"
         android:gravity="center"
